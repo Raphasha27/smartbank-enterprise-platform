@@ -12,6 +12,7 @@ public class Transaction {
     private Double amount;
     private String type;
     private String status;
+    private String idempotencyKey;
     private LocalDateTime timestamp;
 
     public Transaction() { this.timestamp = LocalDateTime.now(); }
@@ -27,5 +28,7 @@ public class Transaction {
     public void setType(String t) { this.type = t; }
     public String getStatus() { return status; }
     public void setStatus(String s) { this.status = s; }
+    public String getIdempotencyKey() { return idempotencyKey; }
+    public void setIdempotencyKey(String k) { this.idempotencyKey = k; }
     public LocalDateTime getTimestamp() { return timestamp; }
 }

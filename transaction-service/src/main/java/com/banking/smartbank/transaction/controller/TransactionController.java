@@ -15,11 +15,14 @@ public class TransactionController {
     public TransactionController(TransactionService s) { this.service = s; }
 
     @PostMapping("/transfer")
-    public ResponseEntity<Transaction> transfer(@RequestBody Map<String, Object> req) {
+    public ResponseEntity<Transaction> transfer(
+            @RequestBody Map<String, Object> req,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         return ResponseEntity.ok(service.transfer(
             Long.valueOf(req.get("fromAccountId").toString()),
             Long.valueOf(req.get("toAccountId").toString()),
-            Double.valueOf(req.get("amount").toString())));
+            Double.valueOf(req.get("amount").toString()),
+            idempotencyKey));
     }
 
     @GetMapping("/account/{accountId}")
