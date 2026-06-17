@@ -21,4 +21,8 @@ public class TransactionEventPublisher {
         TransactionEvent event = new TransactionEvent(txnId, fromAccountId, toAccountId, amount, "TRANSFER", "PENDING_REVERSAL", null);
         kafka.send("reversal-events", String.valueOf(fromAccountId), event);
     }
+
+    public void publishDebitRequest(com.banking.smartbank.transaction.event.DebitRequest req) {
+        kafka.send("debit-requests", String.valueOf(req.getAccountId()), req);
+    }
 }

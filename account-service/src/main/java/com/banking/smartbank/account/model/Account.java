@@ -9,6 +9,8 @@ public class Account {
     private Long userId;
     private String type;
     private Double balance = 0.0;
+    @Version
+    private Long version = 0L;
     private String status = "ACTIVE";
 
     public Account() {}
@@ -20,6 +22,8 @@ public class Account {
     public void setType(String t) { this.type = t; }
     public Double getBalance() { return balance; }
     public void setBalance(Double b) { this.balance = b; }
+    public Long getVersion() { return version; }
+    public void setVersion(Long v) { this.version = v; }
     public String getStatus() { return status; }
     public void setStatus(String s) { this.status = s; }
 }

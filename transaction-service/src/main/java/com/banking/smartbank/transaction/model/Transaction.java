@@ -13,6 +13,7 @@ public class Transaction {
     private String type;
     private String status;
     private String idempotencyKey;
+    private String description;
     private LocalDateTime timestamp;
 
     public Transaction() { this.timestamp = LocalDateTime.now(); }
@@ -30,5 +31,7 @@ public class Transaction {
     public void setStatus(String s) { this.status = s; }
     public String getIdempotencyKey() { return idempotencyKey; }
     public void setIdempotencyKey(String k) { this.idempotencyKey = k; }
+    public String getDescription() { return description; }
+    public void setDescription(String d) { this.description = d; }
     public LocalDateTime getTimestamp() { return timestamp; }
 }

@@ -3,22 +3,34 @@ package com.banking.smartbank.transaction.service;
 import com.banking.smartbank.transaction.model.Transaction;
 import com.banking.smartbank.transaction.repository.TransactionRepository;
 import com.banking.smartbank.transaction.event.TransactionEventPublisher;
+import com.banking.smartbank.transaction.event.DebitRequest;
+import com.banking.smartbank.transaction.event.DebitResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
-import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class TransactionService {
     private final TransactionRepository txnRepo;
     private final TransactionEventPublisher publisher;
-    private final RestTemplate rest;
+    private final Map<String, CompletableFuture<DebitResponse>> pendingRequests = new ConcurrentHashMap<>();
 
     public TransactionService(TransactionRepository tr, TransactionEventPublisher p) {
         this.txnRepo = tr;
         this.publisher = p;
-        this.rest = new RestTemplate();
+    }
+
+    public void registerPendingResponse(String correlationId, CompletableFuture<DebitResponse> future) {
+        pendingRequests.put(correlationId, future);
+    }
+
+    public void completePendingResponse(DebitResponse response) {
+        CompletableFuture<DebitResponse> future = pendingRequests.remove(response.getCorrelationId());
+        if (future != null) future.complete(response);
     }
 
     @Transactional
@@ -27,38 +39,62 @@ public class TransactionService {
             return txnRepo.findByIdempotencyKey(idempotencyKey).get();
         }
 
-        Double fromBalance = rest.getForObject(
-            "http://account-service:8082/accounts/" + fromAccountId, Map.class)
-            .get("balance") instanceof Double d ? d : 0.0;
-
-        if (fromBalance < amount) {
-            throw new RuntimeException("Insufficient funds");
-        }
-
-        rest.put("http://account-service:8082/accounts/" + fromAccountId + "/balance?delta=" + (-amount), null);
-
-        try {
-            rest.put("http://account-service:8082/accounts/" + toAccountId + "/balance?delta=" + amount, null);
-        } catch (Exception e) {
-            Transaction pending = new Transaction();
-            pending.setFromAccountId(fromAccountId); pending.setToAccountId(toAccountId);
-            pending.setAmount(amount); pending.setType("TRANSFER"); pending.setStatus("PENDING_REVERSAL");
-            pending.setIdempotencyKey(idempotencyKey);
-            Transaction saved = txnRepo.save(pending);
-            publisher.publishPendingReversal(saved.getId(), fromAccountId, toAccountId, amount);
-            return saved;
-        }
-
         Transaction txn = new Transaction();
         txn.setFromAccountId(fromAccountId); txn.setToAccountId(toAccountId);
-        txn.setAmount(amount); txn.setType("TRANSFER"); txn.setStatus("COMPLETED");
+        txn.setAmount(amount); txn.setType("TRANSFER"); txn.setStatus("PENDING");
         txn.setIdempotencyKey(idempotencyKey);
-        Transaction saved = txnRepo.save(txn);
-        publisher.publish(saved, "system");
-        return saved;
+        txn = txnRepo.save(txn);
+
+        String debitCorrelationId = UUID.randomUUID().toString();
+        String creditCorrelationId = UUID.randomUUID().toString();
+
+        CompletableFuture<DebitResponse> debitFuture = new CompletableFuture<>();
+        registerPendingResponse(debitCorrelationId, debitFuture);
+
+        publisher.publishDebitRequest(new DebitRequest(debitCorrelationId, fromAccountId, amount, "DEBIT", 0L));
+
+        DebitResponse debitResult;
+        try {
+            debitResult = debitFuture.get(10, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            txn.setStatus("PENDING_REVERSAL");
+            txnRepo.save(txn);
+            publisher.publishPendingReversal(txn.getId(), fromAccountId, toAccountId, amount);
+            return txn;
+        }
+
+        if (!debitResult.isSuccess()) {
+            txn.setStatus("FAILED");
+            txn.setDescription(debitResult.getReason());
+            return txnRepo.save(txn);
+        }
+
+        CompletableFuture<DebitResponse> creditFuture = new CompletableFuture<>();
+        registerPendingResponse(creditCorrelationId, creditFuture);
+        publisher.publishDebitRequest(new DebitRequest(creditCorrelationId, toAccountId, amount, "CREDIT", 0L));
+
+        try {
+            DebitResponse creditResult = creditFuture.get(10, TimeUnit.SECONDS);
+            if (!creditResult.isSuccess()) {
+                txn.setStatus("PENDING_REVERSAL");
+                txnRepo.save(txn);
+                publisher.publishPendingReversal(txn.getId(), fromAccountId, toAccountId, amount);
+                return txn;
+            }
+        } catch (Exception e) {
+            txn.setStatus("PENDING_REVERSAL");
+            txnRepo.save(txn);
+            publisher.publishPendingReversal(txn.getId(), fromAccountId, toAccountId, amount);
+            return txn;
+        }
+
+        txn.setStatus("COMPLETED");
+        txn = txnRepo.save(txn);
+        publisher.publish(txn, "system");
+        return txn;
     }
 
-    public List<Transaction> getAccountTransactions(Long accountId) {
+    public java.util.List<Transaction> getAccountTransactions(Long accountId) {
         return txnRepo.findByFromAccountIdOrToAccountIdOrderByTimestampDesc(accountId, accountId);
     }
 }
