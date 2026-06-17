@@ -1,0 +1,57 @@
+services:
+  # API Gateway - entry point for all requests
+  - type: web
+    name: smartbank-gateway
+    env: docker
+    repo: https://github.com/Raphasha27/smartbank-enterprise-platform
+    dockerfilePath: ./api-gateway/Dockerfile
+    dockerContext: ./api-gateway
+    envVars:
+      - key: AUTH_SERVICE_URL
+        fromService:
+          name: smartbank-auth
+          type: web
+          property: host
+      - key: JWT_SECRET
+        value: smartbank-demo-secret-2026
+      - key: APP_ENV
+        value: production
+      - key: SERVER_PORT
+        value: "8080"
+    healthCheckPath: /actuator/health
+    plan: free
+
+  # Auth Service - authentication and authorization
+  - type: web
+    name: smartbank-auth
+    env: docker
+    repo: https://github.com/Raphasha27/smartbank-enterprise-platform
+    dockerfilePath: ./auth-service/Dockerfile
+    dockerContext: ./auth-service
+    envVars:
+      - key: DB_URL
+        fromDatabase:
+          name: smartbank-db
+          property: connectionString
+      - key: JWT_SECRET
+        value: smartbank-demo-secret-2026
+      - key: APP_ENV
+        value: production
+      - key: SERVER_PORT
+        value: "8081"
+    healthCheckPath: /actuator/health
+    plan: free
+
+  # PostgreSQL Database
+  - type: pserv
+    name: smartbank-db
+    plan: free
+    env: postgres
+    autoDeploy: false
+    envVars:
+      - key: POSTGRES_USER
+        value: smartbank
+      - key: POSTGRES_PASSWORD
+        value: smartbank
+      - key: POSTGRES_DB
+        value: smartbank

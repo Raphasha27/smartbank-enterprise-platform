@@ -125,27 +125,6 @@ sequenceDiagram
 
 ---
 
-## Live Demo
-
-> Deployed on Railway free tier — zero-cost, cloud-hosted demo.
-
-| Service | URL |
-|---------|-----|
-| API Gateway | `https://smartbank-gateway.up.railway.app` |
-| Auth Service | `https://smartbank-auth.up.railway.app` |
-
-```bash
-# Health check
-curl https://smartbank-gateway.up.railway.app/actuator/health
-
-# Login
-curl -X POST https://smartbank-gateway.up.railway.app/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"demo","password":"demo123"}'
-```
-
----
-
 ## How to Run
 
 ### Local (Docker Compose)
@@ -154,17 +133,27 @@ curl -X POST https://smartbank-gateway.up.railway.app/api/v1/auth/login \
 docker-compose up --build
 ```
 
-### Cloud Deployment (Railway)
+### Cloud Deployment (Render — Free Tier)
+
+Deploy via **one-click blueprint** — no CLI needed, no credit card required. Free tier sleeps after inactivity and never expires.
+
+1. Fork the repo
+2. Go to [dashboard.render.com](https://dashboard.render.com) → Blueprint → Connect repo
+3. Render auto-detects `render.yaml` and provisions: Gateway + Auth + PostgreSQL
+
+The `render.yaml` blueprint defines:
+
+```yaml
+services:
+  - smartbank-gateway   # Docker, port 8080, health-checked
+  - smartbank-auth      # Docker, port 8081, health-checked
+  - smartbank-db        # PostgreSQL, free tier
+```
+
+After deploy:
 
 ```bash
-# Deploy API Gateway
-railway up --service gateway-service
-
-# Deploy Auth Service
-railway up --service auth-service
-
-# Deploy PostgreSQL
-railway add postgres
+curl https://your-service.onrender.com/actuator/health
 ```
 
 ---
@@ -173,17 +162,18 @@ railway add postgres
 
 ```mermaid
 graph LR
-    DNS[DNS: smartbank-gateway.up.railway.app] --> RAILWAY[Railway Edge]
-    RAILWAY --> GW[Gateway Service<br/>8080]
-    RAILWAY --> AUTH[Auth Service<br/>8081]
+    REPO[GitHub Repo] -->|render.yaml blueprint| RENDER[Render.com]
+    RENDER --> GW[Gateway Service<br/>:8080]
+    RENDER --> AUTH[Auth Service<br/>:8081]
+    RENDER --> PG[(PostgreSQL<br/>Free Tier)]
     GW --> AUTH
-    GW --> PG[(PostgreSQL<br/>Railway Plugin)]
+    GW -->|healthcheck| PG
 
-    style DNS fill:#e3f2fd
-    style RAILWAY fill:#f3e5f5
-    style GW fill:#c8e6c9
-    style AUTH fill:#c8e6c9
-    style PG fill:#fff3e0
+    style REPO fill:#e3f2fd,stroke:#1565c0
+    style RENDER fill:#f3e5f5,stroke:#6a1b9a
+    style GW fill:#c8e6c9,stroke:#2e7d32
+    style AUTH fill:#c8e6c9,stroke:#2e7d32
+    style PG fill:#fff3e0,stroke:#e65100
 ```
 ---
 
