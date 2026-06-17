@@ -110,6 +110,18 @@ services:
       postgres:
         condition: service_healthy
 
+  ledger-service:
+    build: ./ledger-service
+    ports:
+      - "8087:8087"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/smartbank_ledger
+      - SPRING_DATASOURCE_USERNAME=smartbank
+      - SPRING_DATASOURCE_PASSWORD=smartbank
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   api-gateway:
     build: ./api-gateway
     ports:
@@ -121,6 +133,7 @@ services:
       - loan-service
       - audit-service
       - notification-service
+      - ledger-service
 
 volumes:
   pgdata:
