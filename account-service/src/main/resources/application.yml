@@ -1,0 +1,13 @@
+server:
+  port: 8082
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smartbank_accounts
+    username: smartbank
+    password: smartbank
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+  application:
+    name: account-service

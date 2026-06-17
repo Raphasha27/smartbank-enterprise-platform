@@ -1,0 +1,13 @@
+server:
+  port: 8084
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smartbank_loans
+    username: smartbank
+    password: smartbank
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+  application:
+    name: loan-service

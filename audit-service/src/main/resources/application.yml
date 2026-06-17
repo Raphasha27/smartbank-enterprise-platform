@@ -1,0 +1,13 @@
+server:
+  port: 8085
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smartbank_audit
+    username: smartbank
+    password: smartbank
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+  application:
+    name: audit-service
