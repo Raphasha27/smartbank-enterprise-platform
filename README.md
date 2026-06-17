@@ -135,13 +135,11 @@ docker-compose up --build
 
 ### Cloud Deployment (Render — Free Tier)
 
-Deploy via **one-click blueprint** — no CLI needed, no credit card required. Free tier sleeps after inactivity and never expires.
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Raphasha27/smartbank-enterprise-platform)
 
-1. Fork the repo
-2. Go to [dashboard.render.com](https://dashboard.render.com) → Blueprint → Connect repo
-3. Render auto-detects `render.yaml` and provisions: Gateway + Auth + PostgreSQL
+Deploy via **one-click blueprint** — no CLI needed, no credit card required. Free tier sleeps after 15min idle, wakes on request, and never expires.
 
-The `render.yaml` blueprint defines:
+The `render.yaml` blueprint auto-provisions:
 
 ```yaml
 services:
