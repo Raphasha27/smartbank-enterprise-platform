@@ -1,8 +1,6 @@
 # SmartBank Enterprise Platform
 
-Enterprise-grade, event-driven banking backend system built with Java Spring Boot microservices — designed for fintech and banking environments.
-
-**Built by Kirov Dynamics Technology** — Cybersecurity + AI Engineering Systems
+A distributed fintech backend system simulating real-world banking infrastructure using Java Spring Boot and microservices architecture.
 
 ---
 
@@ -35,9 +33,21 @@ graph TB
     KAFKA --> AUDIT & NOTIF
 ```
 
-## CV-Ready Project Description
+## System Flow
 
-> Designed and implemented a fully containerized, event-driven banking backend system using **Java 21** and **Spring Boot 3.4** across 7 microservices. The platform features **JWT-authenticated** REST APIs, **BCrypt**-hashed user credentials, real-time money transfer processing with balance consistency, loan origination workflows, immutable audit logging for regulatory compliance, and event-driven notification delivery. Deployed via **Docker Compose** with per-service **PostgreSQL** databases and an in-memory event bus for asynchronous fraud evaluation and auditing.
+```
+User → Auth Service → Account Service → Transaction Service → Event Bus → Fraud / Audit / Notification Services
+```
+
+## Key Features
+
+- Secure authentication (JWT + BCrypt)
+- Role-based access control
+- Bank-style transaction processing
+- Fraud detection rule engine
+- Audit logging for compliance tracking
+- Microservices architecture
+- Dockerized deployment (local environment)
 
 ## Tech Stack
 
@@ -74,7 +84,7 @@ mvn clean package -DskipTests
 # Start PostgreSQL + Kafka + all services
 docker compose up -d
 
-# Verify: register a user
+# Register a user
 curl -X POST http://localhost:8080/auth/register \
   -H "Content-Type: application/json" \
   -d '{"name":"Test User","email":"test@bank.com","password":"SecurePass1!"}'
@@ -115,9 +125,14 @@ Transaction Service
 - Public endpoints: `/auth/**`, `/actuator/health`
 - All other routes require `Authorization: Bearer <token>`
 
-## Repository
+## Purpose
 
-GitHub: [github.com/Raphasha27/smartbank-enterprise-platform](https://github.com/Raphasha27/smartbank-enterprise-platform)
+This project demonstrates backend engineering skills aligned with fintech and banking system design patterns.
+
+## Author
+
+**Kirov Dynamics Technology**  
+GitHub: [github.com/Raphasha27](https://github.com/Raphasha27)
 
 ---
 
