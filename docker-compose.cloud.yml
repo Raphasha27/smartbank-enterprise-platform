@@ -1,0 +1,128 @@
+# Cloud-optimized Docker Compose for SmartBank
+# Use this for production-like deployments
+# docker compose -f docker-compose.cloud.yml up -d
+
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.7.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    restart: unless-stopped
+
+  kafka:
+    image: confluentinc/cp-kafka:7.7.0
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    restart: unless-stopped
+
+  auth-service:
+    build: ./auth-service
+    ports: ["${AUTH_SERVICE_PORT:-8081}:8081"]
+    env_file: .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/smartbank_auth
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on: [postgres, kafka]
+    restart: unless-stopped
+
+  account-service:
+    build: ./account-service
+    ports: ["${ACCOUNT_SERVICE_PORT:-8082}:8082"]
+    env_file: .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/smartbank_accounts
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on: [postgres, kafka]
+    restart: unless-stopped
+
+  transaction-service:
+    build: ./transaction-service
+    ports: ["${TRANSACTION_SERVICE_PORT:-8083}:8083"]
+    env_file: .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/smartbank_transactions
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on: [postgres, kafka]
+    restart: unless-stopped
+
+  loan-service:
+    build: ./loan-service
+    ports: ["${LOAN_SERVICE_PORT:-8084}:8084"]
+    env_file: .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/smartbank_loans
+    depends_on: [postgres]
+    restart: unless-stopped
+
+  audit-service:
+    build: ./audit-service
+    ports: ["${AUDIT_SERVICE_PORT:-8085}:8085"]
+    env_file: .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/smartbank_audit
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on: [postgres, kafka]
+    restart: unless-stopped
+
+  notification-service:
+    build: ./notification-service
+    ports: ["${NOTIFICATION_SERVICE_PORT:-8086}:8086"]
+    env_file: .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/smartbank_notifications
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on: [postgres, kafka]
+    restart: unless-stopped
+
+  ledger-service:
+    build: ./ledger-service
+    ports: ["${LEDGER_SERVICE_PORT:-8087}:8087"]
+    env_file: .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/smartbank_ledger
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on: [postgres, kafka]
+    restart: unless-stopped
+
+  api-gateway:
+    build: ./api-gateway
+    ports: ["${API_GATEWAY_PORT:-8080}:8080"]
+    depends_on:
+      - auth-service
+      - account-service
+      - transaction-service
+      - loan-service
+      - audit-service
+      - notification-service
+      - ledger-service
+    restart: unless-stopped
+
+volumes:
+  pgdata:

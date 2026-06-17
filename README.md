@@ -75,6 +75,10 @@ User → Auth Service → Account Service → Transaction Service → Event Bus 
 | **Notification Service** | 8086 | Event-triggered alerts, per-user notification inbox, read/unread tracking |
 | **API Gateway** | 8080 | Request routing, path-based service distribution |
 
+## Live Deployment
+
+Portfolio site (SmartBank overview): [koketso-raphasha.vercel.app](https://portfolio-iota-eight-90.vercel.app)
+
 ## Quick Start
 
 ```bash
@@ -115,6 +119,37 @@ Transaction Service
   → consumed by Fraud rules (if amount > 5000 → HIGH_RISK)
   → consumed by Audit Service (persistent log)
   → consumed by Notification Service (user alert)
+```
+
+## Cloud Deployment Simulation
+
+This system is designed to mimic cloud deployment patterns using Docker containers.
+
+- Microservices run as isolated containers
+- Services communicate via REST APIs
+- Each service has its own database container
+- Configuration injected via environment variables
+- Stateless services enable horizontal scaling
+
+This setup simulates AWS ECS / Kubernetes-style deployment locally.
+
+## Scalability & Cloud Readiness
+
+The system is designed with cloud deployment principles:
+
+- **Stateless services** for horizontal scaling — add more replicas behind the Gateway
+- **Containerized microservices** (Docker Compose) — deployable to any container orchestrator
+- **Externalized configuration** via environment variables — no hardcoded secrets
+- **Database-per-service** — independent scaling and isolation
+- **Event-driven design** via Kafka — decoupled consumers for async processing
+- **Health endpoints** (Actuator) — ready for load balancer health checks
+
+## Environment Variables
+
+Copy `.env.example` to `.env` and configure:
+
+```bash
+cp .env.example .env
 ```
 
 ## Security
