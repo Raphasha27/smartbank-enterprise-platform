@@ -1,6 +1,38 @@
 # SmartBank Enterprise Platform
 
-A distributed fintech backend system simulating real-world banking infrastructure using Java Spring Boot and microservices architecture.
+## Overview
+
+A distributed fintech backend system simulating real-world banking infrastructure using Java Spring Boot, microservices, event-driven architecture, and Docker containerization.
+
+---
+
+## Features
+
+- **Secure authentication** — JWT-based with BCrypt password hashing and role-based access control
+- **Bank-style transaction processing** — two-phase debit/credit with optimistic locking, idempotency keys, and Kafka-driven reconciler
+- **Fraud detection** — rule-based engine evaluating velocity, thresholds, and counterparty patterns asynchronously
+- **Audit logging** — immutable append-only log for regulatory compliance with 90-day hot / 7-year cold retention
+- **Double-entry ledger** — proper accounting model generating DEBIT/CREDIT pairs for every transfer
+- **Event-driven architecture** — Kafka for decoupled consumers (audit, fraud, ledger, notifications)
+- **Distributed tracing** — OpenTelemetry across all services for end-to-end observability
+- **Containerized deployment** — Docker Compose with one-command startup for all 8 services
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Language | Java 21 |
+| Framework | Spring Boot 3.4, Spring Security, Spring Data JPA |
+| Auth | JWT (jjwt), BCrypt |
+| API Routing | Spring Cloud Gateway |
+| Database | PostgreSQL (per-service) |
+| Event Bus | Apache Kafka |
+| Build | Maven (multi-module) |
+| Deployment | Docker Compose |
+| Monitoring | Spring Boot Actuator |
+| Tracing | OpenTelemetry + Zipkin |
 
 ---
 
@@ -17,69 +49,65 @@ graph TB
         LOAN["Loan Service :8084<br/>Applications / Approvals"]
         AUDIT["Audit Service :8085<br/>Immutable Audit Trail"]
         NOTIF["Notification Service :8086<br/>Alerts / Events"]
+        LEDGER["Ledger Service :8087<br/>Double-Entry Accounting"]
     end
     subgraph Infrastructure
         PG[(PostgreSQL)]
-        KAFKA["Event Bus<br/>Kafka / In-Memory"]
+        KAFKA["Event Bus (Kafka)"]
     end
     Client --> GW
-    GW --> AUTH & ACCT & TXN & LOAN & AUDIT & NOTIF
+    GW --> AUTH & ACCT & TXN & LOAN & AUDIT & NOTIF & LEDGER
     AUTH --> PG
     ACCT --> PG
     TXN --> PG & KAFKA
     LOAN --> PG
     AUDIT --> PG
     NOTIF --> PG
-    KAFKA --> AUDIT & NOTIF
+    LEDGER --> PG
+    KAFKA --> AUDIT & NOTIF & LEDGER
 ```
 
-## System Flow
+### System Flow
 
 ```
-User → Auth Service → Account Service → Transaction Service → Event Bus → Fraud / Audit / Notification Services
+User → API Gateway → Auth Service (JWT validation)
+  → Transaction Service (idempotency check)
+  → Kafka DebitRequest → Account Service (atomic UPDATE with version lock)
+  → Kafka DebitResponse → Transaction Service
+  → Kafka CreditRequest → Account Service (atomic credit)
+  → Kafka CreditResponse → Transaction Service (COMPLETED)
+  → TransferEvent published → Audit / Fraud / Ledger / Notification (async consumers)
 ```
 
-## Key Features
-
-- Secure authentication (JWT + BCrypt)
-- Role-based access control
-- Bank-style transaction processing
-- Fraud detection rule engine
-- Audit logging for compliance tracking
-- Microservices architecture
-- Dockerized deployment (local environment)
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Language | Java 21 |
-| Framework | Spring Boot 3.4, Spring Security, Spring Data JPA |
-| Auth | JWT (jjwt), BCrypt |
-| API Routing | Spring Cloud Gateway |
-| Database | PostgreSQL (per-service) |
-| Event Bus | Apache Kafka / In-memory publisher |
-| Build | Maven (multi-module) |
-| Deployment | Docker Compose |
-| Monitoring | Spring Boot Actuator |
+---
 
 ## Microservices
 
 | Service | Port | Responsibility |
 |---------|------|---------------|
-| **Auth Service** | 8081 | User registration, login, JWT generation, BCrypt password hashing, JWT filter enforcement |
-| **Account Service** | 8082 | Account CRUD, balance tracking, deposit/withdrawal balance updates |
-| **Transaction Service** | 8083 | Money transfers with balance validation, transaction history, event publishing |
-| **Loan Service** | 8084 | Loan applications, interest rate modeling, approval workflow |
-| **Audit Service** | 8085 | Immutable audit log creation, user action history, queryable trail |
-| **Notification Service** | 8086 | Event-triggered alerts, per-user notification inbox, read/unread tracking |
-| **API Gateway** | 8080 | Request routing, path-based service distribution |
+| **Auth Service** | 8081 | User registration, login, JWT generation, BCrypt hashing, RBAC |
+| **Account Service** | 8082 | Account CRUD, balance tracking, atomic debit/credit with optimistic locking |
+| **Transaction Service** | 8083 | Transfer orchestration, idempotency, Kafka request/reply flow |
+| **Loan Service** | 8084 | Loan applications, interest modeling, approval workflows |
+| **Audit Service** | 8085 | Immutable audit log — append-only table, 90-day hot retention |
+| **Notification Service** | 8086 | Event-triggered alerts, per-user inbox, read/unread tracking |
+| **Ledger Service** | 8087 | Double-entry accounting — DEBIT/CREDIT journal entries |
+| **API Gateway** | 8080 | Request routing, JWT validation, rate limiting |
 
-## Live Deployment
+---
 
-Portfolio site (SmartBank overview): [koketso-raphasha.vercel.app](https://portfolio-iota-eight-90.vercel.app)
+## Cloud-Ready Design
 
-## Quick Start
+This project is designed with cloud deployment principles:
+
+- **Stateless services** — every service runs as a Docker container with no in-memory session state; add replicas behind the Gateway for horizontal scaling
+- **Containerized microservices** (Docker Compose) — same configuration deploys locally, in CI, or to any container orchestrator (ECS, Kubernetes)
+- **Externalized configuration** via environment variables — no hardcoded secrets or environment-specific values
+- **Database-per-service** — each microservice owns its PostgreSQL database for independent scaling
+- **Event-driven design** via Kafka — decoupled consumers (audit, fraud, ledger, notifications) scale independently from the critical transfer path
+- **Health endpoints** (Actuator) — ready for load balancer health checks and orchestration probes
+
+### Run Locally (Cloud-like Setup)
 
 ```bash
 # Build all services
@@ -87,17 +115,9 @@ mvn clean package -DskipTests
 
 # Start PostgreSQL + Kafka + all services
 docker compose up -d
-
-# Register a user
-curl -X POST http://localhost:8080/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Test User","email":"test@bank.com","password":"SecurePass1!"}'
-
-# Login and get token
-curl -X POST http://localhost:8080/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@bank.com","password":"SecurePass1!"}'
 ```
+
+---
 
 ## API Overview
 
@@ -109,40 +129,52 @@ curl -X POST http://localhost:8080/auth/login \
 | Loans | `POST /loans`, `GET /loans/{id}`, `POST /loans/{id}/approve`, `GET /loans/user/{userId}` |
 | Audit | `POST /audit/logs`, `GET /audit/logs`, `GET /audit/logs/user/{email}` |
 | Notifications | `POST /notifications`, `GET /notifications/user/{email}`, `GET /notifications/user/{email}/unread` |
+| Ledger | `POST /ledger/entries`, `GET /ledger/accounts/{id}/balance`, `GET /ledger/accounts/{id}/entries` |
 | Actuator | `GET /actuator/health`, `GET /actuator/metrics` |
+
+---
 
 ## Event Flow
 
 ```
 Transaction Service
-  → publishes TransactionEvent
-  → consumed by Fraud rules (if amount > 5000 → HIGH_RISK)
-  → consumed by Audit Service (persistent log)
-  → consumed by Notification Service (user alert)
+  → publishes DebitRequest → Account Service (atomic debit)
+  → publishes CreditRequest → Account Service (atomic credit)
+  → publishes TransferEvent (status: COMPLETED)
+  → consumed by:
+      Audit Service (immutable log)
+      Fraud Service (velocity + threshold rules)
+      Ledger Service (double-entry journal)
+      Notification Service (user alerts)
+  
+  On credit failure:
+  → publishes to reversal-events topic
+  → ReversalConsumer checks credit status and reverses debit if needed
 ```
 
-## Cloud Deployment Simulation
+---
 
-This system is designed to mimic cloud deployment patterns using Docker containers.
+## Security
 
-- Microservices run as isolated containers
-- Services communicate via REST APIs
-- Each service has its own database container
-- Configuration injected via environment variables
-- Stateless services enable horizontal scaling
+- Passwords hashed with **BCrypt** (configurable cost factor)
+- JWT tokens with 1-hour expiry, signed with HMAC-SHA256
+- Authentication enforced at **API Gateway** (JWT validation before routing)
+- Authorization enforced at **service layer** (sender must own fromAccount, RBAC for admin endpoints)
+- Public endpoints: `/auth/**`, `/actuator/health`
+- All other routes require `Authorization: Bearer <token>`
 
-This setup simulates AWS ECS / Kubernetes-style deployment locally.
+---
 
-## Scalability & Cloud Readiness
+## System Design Note
 
-The system is designed with cloud deployment principles:
+This project demonstrates backend engineering principles critical to financial systems:
 
-- **Stateless services** for horizontal scaling — add more replicas behind the Gateway
-- **Containerized microservices** (Docker Compose) — deployable to any container orchestrator
-- **Externalized configuration** via environment variables — no hardcoded secrets
-- **Database-per-service** — independent scaling and isolation
-- **Event-driven design** via Kafka — decoupled consumers for async processing
-- **Health endpoints** (Actuator) — ready for load balancer health checks
+- **Data consistency** — optimistic locking with version columns, saga pattern for multi-service operations, Kafka-driven reconciler for eventual correctness
+- **Failure resilience** — idempotency keys prevent duplicate execution, circuit breakers prevent cascading failures, compensating transactions handle partial failures
+- **Concurrency control** — atomic `UPDATE ... WHERE version = ? AND balance >= ?` serializes balance mutations
+- **Scalability** — stateless services, database-per-service, event-driven consumers off the critical path
+
+---
 
 ## Environment Variables
 
@@ -152,22 +184,15 @@ Copy `.env.example` to `.env` and configure:
 cp .env.example .env
 ```
 
-## Security
+Key variables: `JWT_SECRET`, `DB_URL`, `KAFKA_BOOTSTRAP_SERVERS`, service ports.
 
-- Passwords hashed with **BCrypt** (configurable rounds)
-- JWT tokens with 1-hour expiry, signed with HMAC-SHA256
-- JwtFilter validates every authenticated request
-- Public endpoints: `/auth/**`, `/actuator/health`
-- All other routes require `Authorization: Bearer <token>`
-
-## Purpose
-
-This project demonstrates backend engineering skills aligned with fintech and banking system design patterns.
+---
 
 ## Author
 
 **Kirov Dynamics Technology**  
-GitHub: [github.com/Raphasha27](https://github.com/Raphasha27)
+GitHub: [github.com/Raphasha27](https://github.com/Raphasha27)  
+Portfolio: [koketso-raphasha.vercel.app](https://portfolio-iota-eight-90.vercel.app)
 
 ---
 
