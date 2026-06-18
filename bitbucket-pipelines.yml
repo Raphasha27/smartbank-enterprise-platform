@@ -1,0 +1,65 @@
+image: maven:3.9.9-eclipse-temurin-21
+
+definitions:
+  services:
+    postgres:
+      image: postgres:16-alpine
+      variables:
+        POSTGRES_DB: smartbank_test
+        POSTGRES_USER: test
+        POSTGRES_PASSWORD: test
+    kafka:
+      image: confluentinc/cp-kafka:7.7.0
+      variables:
+        KAFKA_BROKER_ID: 1
+        KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+        KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+        KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    zookeeper:
+      image: confluentinc/cp-zookeeper:7.7.0
+      variables:
+        ZOOKEEPER_CLIENT_PORT: 2181
+        ZOOKEEPER_TICK_TIME: 2000
+
+pipelines:
+  default:
+    - step:
+        name: Build & Test
+        caches:
+          - maven
+        services:
+          - postgres
+          - zookeeper
+          - kafka
+        script:
+          - mvn clean verify -B -Dspring.profiles.active=ci
+        artifacts:
+          - auth-service/target/*.jar
+          - account-service/target/*.jar
+          - transaction-service/target/*.jar
+          - loan-service/target/*.jar
+          - gateway/target/*.jar
+
+    - step:
+        name: Integration Smoke Test
+        deployment: test
+        script:
+          - docker compose -f docker-compose.yml up -d --wait 120
+          - curl -f --retry 10 --retry-delay 5 http://localhost:8080/actuator/health
+          - mvn -pl integration-test verify -Psmoke -DskipBuild=true
+
+    - step:
+        name: Security Scan
+        script:
+          - mvn dependency-check:check -B
+          - mvn owasp:dependency-check -B
+
+    - step:
+        name: Deploy to Render
+        trigger: manual
+        script:
+          - pipe: atlassian/render-deploy:0.1.0
+            variables:
+              RENDER_API_KEY: $RENDER_API_KEY
+              RENDER_SERVICE_NAME: smartbank-gateway
+              WAIT: true
