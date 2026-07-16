@@ -4,7 +4,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/smartbank_loans
     username: smartbank
-    password: smartbank
+    password: ${DB_PASSWORD:smartbank}
   jpa:
     hibernate:
       ddl-auto: update
