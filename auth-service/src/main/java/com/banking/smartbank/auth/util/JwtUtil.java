@@ -4,7 +4,7 @@ import io.jsonwebtoken.*;
 import java.util.Date;
 
 public class JwtUtil {
-    private static final String SECRET = "smartbank-secret-key-change-in-production";
+    private static final String SECRET = System.getenv().getOrDefault("JWT_SECRET", "smartbank-secret-key-change-in-production");
 
     public String generateToken(String email) {
         return Jwts.builder()
@@ -29,3 +29,4 @@ public class JwtUtil {
         }
     }
 }
+
