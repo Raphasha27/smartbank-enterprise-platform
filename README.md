@@ -1,5 +1,7 @@
 # SmartBank Enterprise Platform
 
+
+[![CI](https://github.com/Raphasha27/smartbank-enterprise-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Raphasha27/smartbank-enterprise-platform/actions/workflows/ci.yml)
 ## Overview
 SmartBank is a Java Spring Boot-based backend system that simulates real-world banking infrastructure, including secure transactions, account management, fraud detection, and audit logging.
 
@@ -190,3 +192,4 @@ graph LR
 
 **Kirov Dynamics Technology**  
 GitHub: [github.com/Raphasha27](https://github.com/Raphasha27)
+
