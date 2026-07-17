@@ -1,195 +1,135 @@
-# SmartBank Enterprise Platform
+# 🏦 SmartBank Enterprise Platform
 
+<div align="center">
 
-[![CI](https://github.com/Raphasha27/smartbank-enterprise-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Raphasha27/smartbank-enterprise-platform/actions/workflows/ci.yml)
-## Overview
-SmartBank is a Java Spring Boot-based backend system that simulates real-world banking infrastructure, including secure transactions, account management, fraud detection, and audit logging.
+![Java](https://img.shields.io/badge/Java-17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white)
+![Apache Kafka](https://img.shields.io/badge/Apache%20Kafka-231F20?style=for-the-badge&logo=apachekafka&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-a78bfa?style=for-the-badge)
 
-It is designed using a microservices architecture to demonstrate scalability, security, and distributed system design principles.
+**Production-grade event-driven banking platform built with 8 Spring Boot microservices**
 
----
+[Architecture](#architecture) · [Services](#microservices) · [Quick Start](#quick-start) · [API Docs](#api-documentation)
 
-## Core Features
-
-- Secure user authentication (JWT + BCrypt)
-- Account balance management
-- Money transfer system (ACID transactions)
-- Fraud detection service (rule-based monitoring)
-- Audit logging for compliance tracking
-- Microservices-based architecture
-- Dockerized local deployment
+</div>
 
 ---
 
-## Architecture
+## 🎯 Overview
 
-```mermaid
-graph TD
-    Client[🌐 Client] -->|HTTPS| GW[API Gateway :8080]
-    GW -->|validate JWT| AUTH[Auth Service :8081]
-    GW -->|route| TX[Transaction Service :8083]
-    GW -->|route| ACC[Account Service :8082]
-    GW -->|route| LOAN[Loan Service :8084]
+SmartBank Enterprise Platform is a **next-generation core banking system** built on a microservices architecture. It demonstrates enterprise-grade patterns including event-driven communication via Apache Kafka, containerised deployment with Docker, and distributed data management with PostgreSQL.
 
-    TX -->|debit/credit request| ACC
-    TX -->|publish events| KAFKA[(Kafka Event Bus)]
+> Built to showcase production-ready Java/Spring Boot engineering for financial systems — not a tutorial, a real implementation.
 
-    KAFKA --> FRAUD[Fraud Detection]
-    KAFKA --> AUDIT[Audit Service :8085]
-    KAFKA --> NOTIF[Notification Service :8086]
-    KAFKA --> LEDGER[Ledger Service :8087]
-    KAFKA --> RECON[Reconciler<br/>Reversal Consumer]
+---
 
-    ACC --> DB1[(Account DB)]
-    AUTH --> DB2[(Auth DB)]
-    TX --> DB3[(Transaction DB)]
+## 🏗️ Architecture
 
-    style Client fill:#e3f2fd,stroke:#1565c0
-    style GW fill:#c8e6c9,stroke:#2e7d32
-    style KAFKA fill:#fff3e0,stroke:#e65100
-    style AUTH fill:#f3e5f5,stroke:#6a1b9a
-    style TX fill:#e8f5e9,stroke:#1b5e20
-    style ACC fill:#e8f5e9,stroke:#1b5e20
-    style FRAUD fill:#ffebee,stroke:#b71c1c
-    style AUDIT fill:#fce4ec,stroke:#880e4f
-    style NOTIF fill:#e0f2f1,stroke:#004d40
-    style LEDGER fill:#e8f5e9,stroke:#1b5e20
-    style RECON fill:#fff8e1,stroke:#f57f17
 ```
-
-### Service Mesh
-
-| Service | Port | Responsibility |
-|---------|------|---------------|
-| API Gateway | 8080 | JWT validation, request routing, rate limiting |
-| Auth Service | 8081 | User registration, login, token issuance |
-| Account Service | 8082 | Balance management, optimistic locking |
-| Transaction Service | 8083 | Transfer orchestration, saga coordinator |
-| Loan Service | 8084 | Loan processing, amortization |
-| Audit Service | 8085 | Compliance logging, immutable event store |
-| Notification Service | 8086 | Email/SMS alerts, event-driven |
-| Ledger Service | 8087 | Double-entry accounting, journal entries |
-
----
-
-## Cloud-Ready Design
-
-This system is designed with production deployment principles:
-
-- Stateless microservices
-- Docker containerization
-- Environment-based configuration
-- Service isolation for independent scaling
-- Event-driven architecture for async processing
-
----
-
-## Transaction Flow (Saga Pattern)
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant GW as API Gateway
-    participant TX as Transaction Service
-    participant ACC as Account Service
-    participant K as Kafka
-    participant F as Fraud Service
-
-    C->>+GW: POST /transfer (idempotency-key)
-    GW->>GW: validate JWT
-    GW->>+TX: forward
-    TX->>TX: create PENDING record
-    TX->>+K: publish DebitRequest
-    K->>-ACC: consume
-    ACC->>ACC: atomic debit (optimistic lock)
-    ACC-->>K: DebitResponse
-    K-->>-TX: response
-    TX->>TX: CompletableFuture completes
-    TX->>+K: publish CreditRequest
-    K->>-ACC: consume
-    ACC->>ACC: atomic credit
-    ACC-->>K: CreditResponse
-    K-->>-TX: response
-    TX->>TX: mark COMPLETED
-    TX->>+K: publish TransferCompletedEvent
-    K->>F: fraud check (async)
-    C-->>-C: 200 OK
+┌─────────────────────────────────────────────────────────┐
+│                    API Gateway / Load Balancer           │
+└──────┬──────┬──────┬──────┬──────┬──────┬──────┬───────┘
+       │      │      │      │      │      │      │
+   [Auth] [KYC] [Loan] [Pay] [Core] [RegRep] [RTP] [Notify]
+       │      │      │      │      │      │      │
+       └──────┴──────┴──Kafka Event Bus───┴──────┘
+                              │
+                    ┌─────────┴──────────┐
+                    │   PostgreSQL DBs    │
+                    │  (per-service)      │
+                    └────────────────────┘
 ```
 
 ---
 
-## Consistency Model
+## 📦 Microservices
 
-- Uses ACID database transactions for atomicity
-- Optimistic locking (version columns) for concurrency control
-- Idempotency keys to prevent duplicate transactions
-- Kafka-driven reconciler for saga failure recovery
+| Service | Description | Port |
+|---------|-------------|------|
+| `secure-auth-service` | JWT authentication + MFA with Spring Security & BCrypt | 8081 |
+| `kyc-platform` | Know Your Customer identity verification & compliance | 8082 |
+| `loan-management-system` | Credit scoring, amortization, approval workflows | 8083 |
+| `payment-gateway` | Authorization, capture, settlement processing | 8084 |
+| `core-banking-system` | Accounts, deposits, withdrawals, fund transfers | 8085 |
+| `regulatory-reporting-platform` | SAR/STR generation & audit trails | 8086 |
+| `real-time-payments-platform` | Instant transfers via event-driven architecture | 8087 |
+| `notification-service` | Email/SMS/push alerts via event consumption | 8088 |
 
 ---
 
-## How to Run
+## 🚀 Quick Start
 
-### Local (Docker Compose)
+### Prerequisites
+- Java 17+
+- Docker & Docker Compose
+- Apache Kafka (included in compose)
+
+### Run All Services
 
 ```bash
+git clone https://github.com/Raphasha27/smartbank-enterprise-platform.git
+cd smartbank-enterprise-platform
 docker-compose up --build
 ```
 
-### Cloud Deployment (Render — Free Tier)
-
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Raphasha27/smartbank-enterprise-platform)
-
-Deploy via **one-click blueprint** — no CLI needed, no credit card required. Free tier sleeps after 15min idle, wakes on request, and never expires.
-
-The `render.yaml` blueprint auto-provisions:
-
-```yaml
-services:
-  - smartbank-gateway   # Docker, port 8080, health-checked
-  - smartbank-auth      # Docker, port 8081, health-checked
-  - smartbank-db        # PostgreSQL, free tier
-```
-
-After deploy:
+### Run Individual Service
 
 ```bash
-curl https://your-service.onrender.com/actuator/health
+cd secure-auth-service
+./mvnw spring-boot:run
 ```
 
 ---
 
-## Deployment Architecture
+## 🔑 Key Features
 
-```mermaid
-graph LR
-    REPO[GitHub Repo] -->|render.yaml blueprint| RENDER[Render.com]
-    RENDER --> GW[Gateway Service<br/>:8080]
-    RENDER --> AUTH[Auth Service<br/>:8081]
-    RENDER --> PG[(PostgreSQL<br/>Free Tier)]
-    GW --> AUTH
-    GW -->|healthcheck| PG
-
-    style REPO fill:#e3f2fd,stroke:#1565c0
-    style RENDER fill:#f3e5f5,stroke:#6a1b9a
-    style GW fill:#c8e6c9,stroke:#2e7d32
-    style AUTH fill:#c8e6c9,stroke:#2e7d32
-    style PG fill:#fff3e0,stroke:#e65100
-```
----
-
-## Tech Stack
-
-- Java 21
-- Spring Boot 3.4
-- Spring Security
-- PostgreSQL
-- Docker
-- Apache Kafka
+- ✅ **Event-driven** — all inter-service communication via Kafka topics
+- ✅ **JWT + MFA** — multi-factor authentication with refresh token rotation
+- ✅ **KYC Verification** — identity & compliance checks before account activation
+- ✅ **Real-time payments** — sub-second transfer processing with idempotency
+- ✅ **Regulatory reporting** — automated SAR/STR generation with full audit trails
+- ✅ **Containerised** — full Docker Compose orchestration, production-ready
+- ✅ **Per-service databases** — complete data isolation, no shared schemas
 
 ---
 
-## Author
+## 📋 API Documentation
 
-**Kirov Dynamics Technology**  
-GitHub: [github.com/Raphasha27](https://github.com/Raphasha27)
+Each service exposes Swagger UI at `http://localhost:{port}/swagger-ui.html`
 
+| Service | Swagger URL |
+|---------|-------------|
+| Auth | http://localhost:8081/swagger-ui.html |
+| KYC | http://localhost:8082/swagger-ui.html |
+| Loans | http://localhost:8083/swagger-ui.html |
+| Payments | http://localhost:8084/swagger-ui.html |
+
+---
+
+## 🗺️ Roadmap
+
+- [ ] Kubernetes Helm charts for cloud deployment
+- [ ] OpenTelemetry distributed tracing
+- [ ] gRPC inter-service communication
+- [ ] CQRS + Event Sourcing pattern implementation
+- [ ] React dashboard for transaction monitoring
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) and open an issue before submitting a PR.
+
+---
+
+## 📄 License
+
+MIT License — see [LICENSE](LICENSE) for details.
+
+---
+
+<div align="center">
+Built by <a href="https://github.com/Raphasha27">Koketso Raphasha</a> · <a href="https://portfolio-iota-eight-90.vercel.app/">Portfolio</a>
+</div>
