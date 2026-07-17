@@ -1,5 +1,7 @@
 # 🏦 SmartBank Enterprise Platform
 
+[![CI](https://github.com/Raphasha27/smartbank-enterprise-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Raphasha27/smartbank-enterprise-platform/actions/workflows/ci.yml)
+
 <div align="center">
 
 ![Java](https://img.shields.io/badge/Java-17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
