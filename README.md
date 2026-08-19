@@ -190,3 +190,8 @@ graph LR
 
 **Kirov Dynamics Technology**  
 GitHub: [github.com/Raphasha27](https://github.com/Raphasha27)
+
+
+## Usage Instructions
+Framework detected: Vanilla Web (HTML/JS/CSS)
+Open the HTML files directly in your browser or run a simple local web server (e.g. `npx serve` or `python -m http.server`).
