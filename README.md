@@ -1,70 +1,77 @@
-# 🏦 SmartBank Enterprise Platform
+# SmartBank Enterprise Platform
 
-[![CI](https://github.com/Raphasha27/smartbank-enterprise-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Raphasha27/smartbank-enterprise-platform/actions/workflows/ci.yml)
+### Microservices-Based Core Banking System
 
 <div align="center">
 
-![Java](https://img.shields.io/badge/Java-17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white)
-![Apache Kafka](https://img.shields.io/badge/Apache%20Kafka-231F20?style=for-the-badge&logo=apachekafka&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-a78bfa?style=for-the-badge)
-
-**Production-grade event-driven banking platform built with 8 Spring Boot microservices**
-
-[Architecture](#architecture) · [Services](#microservices) · [Quick Start](#quick-start) · [API Docs](#api-documentation)
+[![CI](https://github.com/Raphasha27/smartbank-enterprise-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Raphasha27/smartbank-enterprise-platform/actions/workflows/ci.yml)
+![Java](https://img.shields.io/badge/Java-21-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-6DB33F?style=flat-square&logo=spring-boot&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=flat-square&logo=docker&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-a78bfa?style=flat-square)
 
 </div>
 
 ---
 
-## 🎯 Overview
+## Overview
 
-SmartBank Enterprise Platform is a **next-generation core banking system** built on a microservices architecture. It demonstrates enterprise-grade patterns including event-driven communication via Apache Kafka, containerised deployment with Docker, and distributed data management with PostgreSQL.
+SmartBank Enterprise Platform is a **distributed core banking system** built on a microservices architecture with event-driven communication via Apache Kafka. It implements CQRS patterns, per-service database isolation, and containerised deployment — designed to demonstrate production-ready Java/Spring Boot engineering for financial systems.
 
-> Built to showcase production-ready Java/Spring Boot engineering for financial systems — not a tutorial, a real implementation.
+> Built to showcase enterprise-grade patterns — not a tutorial, a real implementation.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    API Gateway / Load Balancer           │
-└──────┬──────┬──────┬──────┬──────┬──────┬──────┬───────┘
-       │      │      │      │      │      │      │
-   [Auth] [KYC] [Loan] [Pay] [Core] [RegRep] [RTP] [Notify]
-       │      │      │      │      │      │      │
-       └──────┴──────┴──Kafka Event Bus───┴──────┘
-                              │
-                    ┌─────────┴──────────┐
-                    │   PostgreSQL DBs    │
-                    │  (per-service)      │
-                    └────────────────────┘
+                         ┌──────────────────────┐
+                         │   API Gateway :8080   │
+                         │  Spring Cloud Gateway │
+                         └──────┬───────────────┘
+                                │
+          ┌─────────┬───────────┼───────────┬──────────┬──────────┬──────────┐
+          │         │           │           │          │          │          │
+     ┌────▼───┐ ┌───▼────┐ ┌───▼────┐ ┌───▼────┐ ┌───▼────┐ ┌───▼────┐ ┌───▼────┐
+     │ Auth   │ │Account │ │Transact│ │  Loan  │ │ Ledger │ │ Notif. │ │ Audit  │
+     │ :8081  │ │ :8082  │ │ :8083  │ │ :8084  │ │ :8087  │ │ :8086  │ │ :8085  │
+     └───┬────┘ └───┬────┘ └───┬────┘ └───┬────┘ └───┬────┘ └───┬────┘ └───┬────┘
+         │          │          │          │          │          │          │
+         └──────────┴──────────┴────┬─────┴──────────┴──────────┴──────────┘
+                                    │
+                         ┌──────────▼──────────┐
+                         │   Apache Kafka Bus   │
+                         │  Event-Driven Comms   │
+                         └──────────┬──────────┘
+                                    │
+                    ┌───────────────▼───────────────┐
+                    │        PostgreSQL Cluster      │
+                    │   (per-service databases)      │
+                    └───────────────────────────────┘
 ```
 
 ---
 
-## 📦 Microservices
+## Microservices
 
-| Service | Description | Port |
-|---------|-------------|------|
-| `secure-auth-service` | JWT authentication + MFA with Spring Security & BCrypt | 8081 |
-| `kyc-platform` | Know Your Customer identity verification & compliance | 8082 |
-| `loan-management-system` | Credit scoring, amortization, approval workflows | 8083 |
-| `payment-gateway` | Authorization, capture, settlement processing | 8084 |
-| `core-banking-system` | Accounts, deposits, withdrawals, fund transfers | 8085 |
-| `regulatory-reporting-platform` | SAR/STR generation & audit trails | 8086 |
-| `real-time-payments-platform` | Instant transfers via event-driven architecture | 8087 |
-| `notification-service` | Email/SMS/push alerts via event consumption | 8088 |
+| Service | Port | Description | Database |
+|---------|------|-------------|----------|
+| `api-gateway` | 8080 | Spring Cloud Gateway — routing, rate limiting, auth forwarding | — |
+| `auth-service` | 8081 | JWT authentication, MFA, BCrypt password hashing, refresh token rotation | `smartbank_auth` |
+| `account-service` | 8082 | Account CRUD, balance management, deposit/withdrawal processing | `smartbank_accounts` |
+| `transaction-service` | 8083 | Fund transfers, idempotent processing, transaction history | `smartbank_transactions` |
+| `loan-service` | 8084 | Credit scoring, amortisation schedules, loan approval workflows | `smartbank_loans` |
+| `audit-service` | 8085 | Immutable audit trail logging for all financial operations | `smartbank_audit` |
+| `notification-service` | 8086 | Email/SMS/push notifications consumed from Kafka events | `smartbank_notifications` |
+| `ledger-service` | 8087 | Double-entry bookkeeping, general ledger, balance reconciliation | `smartbank_ledger` |
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
-- Java 17+
+
+- Java 21+
 - Docker & Docker Compose
 - Apache Kafka (included in compose)
 
@@ -73,60 +80,89 @@ SmartBank Enterprise Platform is a **next-generation core banking system** built
 ```bash
 git clone https://github.com/Raphasha27/smartbank-enterprise-platform.git
 cd smartbank-enterprise-platform
-docker-compose up --build
+docker compose up --build
 ```
 
 ### Run Individual Service
 
 ```bash
-cd secure-auth-service
+cd auth-service
 ./mvnw spring-boot:run
 ```
 
 ---
 
-## 🔑 Key Features
+## Tech Stack
 
-- ✅ **Event-driven** — all inter-service communication via Kafka topics
-- ✅ **JWT + MFA** — multi-factor authentication with refresh token rotation
-- ✅ **KYC Verification** — identity & compliance checks before account activation
-- ✅ **Real-time payments** — sub-second transfer processing with idempotency
-- ✅ **Regulatory reporting** — automated SAR/STR generation with full audit trails
-- ✅ **Containerised** — full Docker Compose orchestration, production-ready
-- ✅ **Per-service databases** — complete data isolation, no shared schemas
+| Category | Technology |
+|----------|------------|
+| Language | Java 21 |
+| Framework | Spring Boot 3.x |
+| API Gateway | Spring Cloud Gateway |
+| Messaging | Apache Kafka |
+| Database | PostgreSQL 15 |
+| Security | Spring Security, JWT, BCrypt |
+| Build | Maven |
+| Container | Docker & Docker Compose |
 
 ---
 
-## 📋 API Documentation
+## Project Structure
+
+```
+smartbank-enterprise-platform/
+├── api-gateway/            # Spring Cloud Gateway — routing & rate limiting
+├── auth-service/           # JWT + MFA authentication service
+├── account-service/        # Account management & balance operations
+├── transaction-service/    # Fund transfers & transaction history
+├── loan-service/           # Credit scoring & loan workflows
+├── audit-service/          # Immutable audit trail logging
+├── notification-service/   # Email/SMS/push notification consumer
+├── ledger-service/         # Double-entry bookkeeping engine
+├── docker/                 # Shared Docker configs
+├── docs/                   # Architecture documentation
+├── scripts/                # Utility scripts
+├── docker-compose.yml      # Full stack orchestration
+├── pom.xml                 # Parent Maven POM
+├── CONTRIBUTING.md
+├── SECURITY.md
+└── LICENSE
+```
+
+---
+
+## Key Features
+
+- **Event-driven architecture** — all inter-service communication via Kafka topics
+- **JWT + MFA** — multi-factor authentication with refresh token rotation
+- **Per-service databases** — complete data isolation, no shared schemas
+- **Idempotent transfers** — sub-second fund processing with deduplication
+- **Audit trails** — immutable logging for every financial operation
+- **Containerised** — full Docker Compose orchestration, production-ready
+
+---
+
+## API Documentation
 
 Each service exposes Swagger UI at `http://localhost:{port}/swagger-ui.html`
 
 | Service | Swagger URL |
 |---------|-------------|
+| Gateway | http://localhost:8080/swagger-ui.html |
 | Auth | http://localhost:8081/swagger-ui.html |
-| KYC | http://localhost:8082/swagger-ui.html |
-| Loans | http://localhost:8083/swagger-ui.html |
-| Payments | http://localhost:8084/swagger-ui.html |
+| Accounts | http://localhost:8082/swagger-ui.html |
+| Transactions | http://localhost:8083/swagger-ui.html |
+| Loans | http://localhost:8084/swagger-ui.html |
 
 ---
 
-## 🗺️ Roadmap
-
-- [ ] Kubernetes Helm charts for cloud deployment
-- [ ] OpenTelemetry distributed tracing
-- [ ] gRPC inter-service communication
-- [ ] CQRS + Event Sourcing pattern implementation
-- [ ] React dashboard for transaction monitoring
-
----
-
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) and open an issue before submitting a PR.
 
 ---
 
-## 📄 License
+## License
 
 MIT License — see [LICENSE](LICENSE) for details.
 
@@ -135,9 +171,3 @@ MIT License — see [LICENSE](LICENSE) for details.
 <div align="center">
 Built by <a href="https://github.com/Raphasha27">Koketso Raphasha</a> · <a href="https://portfolio-iota-eight-90.vercel.app/">Portfolio</a>
 </div>
-
-## Contributors
-
-This project is developed and maintained together with the team:
-- [Raphasha27](https://github.com/Raphasha27) — Project lead & maintainer
-- [DkMash](https://github.com/DkMash) — Teammate
