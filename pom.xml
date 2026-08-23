@@ -41,6 +41,7 @@
             <dependency>
                 <groupId>io.micrometer</groupId>
                 <artifactId>micrometer-tracing-bridge-otel</artifactId>
+                <version>1.13.4</version>
             </dependency>
             <dependency>
                 <groupId>io.opentelemetry</groupId>
