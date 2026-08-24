@@ -38,16 +38,6 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <dependency>
-                <groupId>io.micrometer</groupId>
-                <artifactId>micrometer-tracing-bridge-otel</artifactId>
-                <version>1.13.4</version>
-            </dependency>
-            <dependency>
-                <groupId>io.opentelemetry</groupId>
-                <artifactId>opentelemetry-exporter-zipkin</artifactId>
-                <version>1.31.0</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>
