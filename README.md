@@ -1,14 +1,15 @@
+[![CI](https://github.com/Raphasha27/smartbank-enterprise-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Raphasha27/smartbank-enterprise-platform/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 # SmartBank Enterprise Platform
 
 ### Microservices-Based Core Banking System
 
 <div align="center">
 
-[![CI](https://github.com/Raphasha27/smartbank-enterprise-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Raphasha27/smartbank-enterprise-platform/actions/workflows/ci.yml)
 ![Java](https://img.shields.io/badge/Java-21-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-6DB33F?style=flat-square&logo=spring-boot&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=flat-square&logo=docker&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-a78bfa?style=flat-square)
 
 </div>
 
