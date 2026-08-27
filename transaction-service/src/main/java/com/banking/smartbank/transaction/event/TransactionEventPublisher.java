@@ -7,8 +7,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class TransactionEventPublisher {
     private final KafkaTemplate<String, TransactionEvent> kafka;
+    private final KafkaTemplate<String, DebitRequest> debitKafka;
 
-    public TransactionEventPublisher(KafkaTemplate<String, TransactionEvent> k) { this.kafka = k; }
+    public TransactionEventPublisher(KafkaTemplate<String, TransactionEvent> k, KafkaTemplate<String, DebitRequest> dk) {
+        this.kafka = k;
+        this.debitKafka = dk;
+    }
 
     public void publish(Transaction txn, String userEmail) {
         TransactionEvent event = new TransactionEvent(
@@ -22,7 +26,7 @@ public class TransactionEventPublisher {
         kafka.send("reversal-events", String.valueOf(fromAccountId), event);
     }
 
-    public void publishDebitRequest(com.banking.smartbank.transaction.event.DebitRequest req) {
-        kafka.send("debit-requests", String.valueOf(req.getAccountId()), req);
+    public void publishDebitRequest(DebitRequest req) {
+        debitKafka.send("debit-requests", String.valueOf(req.getAccountId()), req);
     }
 }
