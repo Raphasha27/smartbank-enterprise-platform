@@ -37,12 +37,17 @@ jobs:
           for svc in auth-service account-service transaction-service api-gateway; do
             docker compose up -d $svc
           done
-          sleep 10
+          echo "Waiting for services to start..."
+          sleep 30
 
       - name: Run integration smoke tests
         run: |
           echo "=== Health checks ==="
-          curl -sf http://localhost:8080/actuator/health && echo " — Gateway UP"
+          for i in 1 2 3 4 5; do
+            curl -sf http://localhost:8080/actuator/health && echo " — Gateway UP" && break
+            echo "Attempt $i: Gateway not ready, waiting..."
+            sleep 10
+          done
           curl -sf http://localhost:8081/actuator/health && echo " — Auth UP"
           curl -sf http://localhost:8082/actuator/health && echo " — Account UP"
           curl -sf http://localhost:8083/actuator/health && echo " — Transaction UP"
