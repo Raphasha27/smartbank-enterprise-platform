@@ -34,7 +34,7 @@ jobs:
 
       - name: Start services
         run: |
-          for svc in auth-service account-service transaction-service audit-service notification-service api-gateway; do
+          for svc in auth-service account-service transaction-service api-gateway; do
             docker compose up -d $svc
           done
           sleep 10
